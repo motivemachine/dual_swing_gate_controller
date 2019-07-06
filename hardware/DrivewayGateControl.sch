@@ -301,7 +301,7 @@ L Device:R R10
 U 1 1 5D24FA4B
 P 10790 1760
 F 0 "R10" H 10860 1806 50  0000 L CNN
-F 1 "100" H 10860 1715 50  0000 L CNN
+F 1 "0.1" H 10860 1715 50  0000 L CNN
 F 2 "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal" V 10720 1760 50  0001 C CNN
 F 3 "~" H 10790 1760 50  0001 C CNN
 	1    10790 1760
@@ -562,7 +562,7 @@ L Device:R R7
 U 1 1 5D30B046
 P 8180 1730
 F 0 "R7" H 8250 1776 50  0000 L CNN
-F 1 "100" H 8250 1685 50  0000 L CNN
+F 1 "0.1" H 8250 1685 50  0000 L CNN
 F 2 "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal" V 8110 1730 50  0001 C CNN
 F 3 "~" H 8180 1730 50  0001 C CNN
 	1    8180 1730
@@ -1519,4 +1519,6 @@ F 3 "~" H 1260 890 50  0001 C CNN
 	1    1260 890 
 	0    -1   -1   0   
 $EndComp
+Text Notes 11325 1830 0    50   ~ 0
+3 amps through 0.1ohm shunt resistor is 0.3 watts\n1/2watt minimum resistor recommended\n
 $EndSCHEMATC

@@ -49,17 +49,6 @@ F 4 "INA219BIDCNR" H 10350 1160 50  0001 L BNN "Field7"
 	1    0    0    -1  
 $EndComp
 $Comp
-L Device:D D5
-U 1 1 5D1CEA1D
-P 9890 3290
-F 0 "D5" V 9844 3369 50  0000 L CNN
-F 1 "D" V 9935 3369 50  0000 L CNN
-F 2 "Diode_THT:D_A-405_P7.62mm_Horizontal" H 9890 3290 50  0001 C CNN
-F 3 "~" H 9890 3290 50  0001 C CNN
-	1    9890 3290
-	0    1    1    0   
-$EndComp
-$Comp
 L Connector_Generic:Conn_01x04 J4
 U 1 1 5D1D7755
 P 10320 6060
@@ -193,17 +182,6 @@ F 3 "http://www.sanyourelay.ca/public/products/pdf/SRD.pdf" H 10500 4620 50  000
 	1    0    0    -1  
 $EndComp
 $Comp
-L Device:D D6
-U 1 1 5D1F4864
-P 9900 4630
-F 0 "D6" V 9854 4709 50  0000 L CNN
-F 1 "D" V 9945 4709 50  0000 L CNN
-F 2 "Diode_THT:D_A-405_P7.62mm_Horizontal" H 9900 4630 50  0001 C CNN
-F 3 "~" H 9900 4630 50  0001 C CNN
-	1    9900 4630
-	0    1    1    0   
-$EndComp
-$Comp
 L Device:R R9
 U 1 1 5D1F4878
 P 9300 4120
@@ -273,7 +251,7 @@ Wire Wire Line
 Wire Wire Line
 	10450 4080 10600 4080
 Wire Wire Line
-	10600 4080 10600 4320
+	10600 4080 10600 4085
 $Comp
 L power:GND #PWR0109
 U 1 1 5D228306
@@ -352,7 +330,7 @@ Connection ~ 10790 1910
 Wire Wire Line
 	10800 4260 11140 4260
 Wire Wire Line
-	11140 4260 11140 2910
+	11140 4260 11140 4085
 Wire Wire Line
 	11140 2910 10790 2910
 Connection ~ 10790 2910
@@ -371,17 +349,6 @@ F 3 "" H 7940 2030 50  0000 L BNN
 F 4 "INA219BIDCNR" H 7740 1130 50  0001 L BNN "Field7"
 	1    7940 2030
 	1    0    0    -1  
-$EndComp
-$Comp
-L Device:D D3
-U 1 1 5D30AF9E
-P 7280 3260
-F 0 "D3" V 7234 3339 50  0000 L CNN
-F 1 "D" V 7325 3339 50  0000 L CNN
-F 2 "Diode_THT:D_A-405_P7.62mm_Horizontal" H 7280 3260 50  0001 C CNN
-F 3 "~" H 7280 3260 50  0001 C CNN
-	1    7280 3260
-	0    1    1    0   
 $EndComp
 $Comp
 L Device:R R5
@@ -474,17 +441,6 @@ F 2 "Relay_THT:Relay_SPDT_SANYOU_SRD_Series_Form_C" H 8340 4540 50  0001 L CNN
 F 3 "http://www.sanyourelay.ca/public/products/pdf/SRD.pdf" H 7890 4590 50  0001 C CNN
 	1    7890 4590
 	1    0    0    -1  
-$EndComp
-$Comp
-L Device:D D4
-U 1 1 5D30AFFC
-P 7290 4600
-F 0 "D4" V 7244 4679 50  0000 L CNN
-F 1 "D" V 7335 4679 50  0000 L CNN
-F 2 "Diode_THT:D_A-405_P7.62mm_Horizontal" H 7290 4600 50  0001 C CNN
-F 3 "~" H 7290 4600 50  0001 C CNN
-	1    7290 4600
-	0    1    1    0   
 $EndComp
 $Comp
 L Device:R R6
@@ -591,7 +547,7 @@ Connection ~ 8180 1880
 Wire Wire Line
 	8190 4230 8530 4230
 Wire Wire Line
-	8530 4230 8530 2880
+	8530 4230 8530 4050
 Wire Wire Line
 	8530 2880 8180 2880
 Connection ~ 8180 2880
@@ -879,14 +835,12 @@ L Switch:SW_Push SW1
 U 1 1 5D3F18CD
 P 1510 2570
 F 0 "SW1" H 1510 2855 50  0000 C CNN
-F 1 "SW_Push" H 1510 2764 50  0000 C CNN
+F 1 "close" H 1510 2764 50  0000 C CNN
 F 2 "Button_Switch_THT:SW_PUSH_6mm_H8.5mm" H 1510 2770 50  0001 C CNN
 F 3 "~" H 1510 2770 50  0001 C CNN
 	1    1510 2570
 	1    0    0    -1  
 $EndComp
-Text Notes 2550 5110 0    50   ~ 0
-add sensitivity adjust for magneto sensor? or address adjust?
 $Comp
 L Connector_Generic:Conn_01x04 J2
 U 1 1 5D3F7A91
@@ -1276,58 +1230,12 @@ Text Notes 7660 1740 0    50   ~ 0
 0x41\n
 Text Notes 10300 1780 0    50   ~ 0
 0x40\n
-$Comp
-L Mechanical:MountingHole H1
-U 1 1 5D1AEA67
-P 660 7130
-F 0 "H1" H 760 7176 50  0000 L CNN
-F 1 "MountingHole" H 760 7085 50  0000 L CNN
-F 2 "MountingHole:MountingHole_3.2mm_M3_Pad_Via" H 660 7130 50  0001 C CNN
-F 3 "~" H 660 7130 50  0001 C CNN
-	1    660  7130
-	1    0    0    -1  
-$EndComp
-$Comp
-L Mechanical:MountingHole H2
-U 1 1 5D1AF435
-P 660 7280
-F 0 "H2" H 760 7326 50  0000 L CNN
-F 1 "MountingHole" H 760 7235 50  0000 L CNN
-F 2 "MountingHole:MountingHole_3.2mm_M3_Pad_Via" H 660 7280 50  0001 C CNN
-F 3 "~" H 660 7280 50  0001 C CNN
-	1    660  7280
-	1    0    0    -1  
-$EndComp
-$Comp
-L Mechanical:MountingHole H3
-U 1 1 5D1AFC52
-P 660 7430
-F 0 "H3" H 760 7476 50  0000 L CNN
-F 1 "MountingHole" H 760 7385 50  0000 L CNN
-F 2 "MountingHole:MountingHole_3.2mm_M3_Pad_Via" H 660 7430 50  0001 C CNN
-F 3 "~" H 660 7430 50  0001 C CNN
-	1    660  7430
-	1    0    0    -1  
-$EndComp
-$Comp
-L Mechanical:MountingHole H4
-U 1 1 5D1B04B2
-P 660 7580
-F 0 "H4" H 760 7626 50  0000 L CNN
-F 1 "MountingHole" H 760 7535 50  0000 L CNN
-F 2 "MountingHole:MountingHole_3.2mm_M3_Pad_Via" H 660 7580 50  0001 C CNN
-F 3 "~" H 660 7580 50  0001 C CNN
-	1    660  7580
-	1    0    0    -1  
-$EndComp
 Text Notes 2050 6400 0    50   ~ 0
 external pullups- disable internal pullups in software
 Text Label 1440 5870 3    50   ~ 0
 a6
 Text Label 1540 5870 3    50   ~ 0
 a7
-Text Label 2090 4620 0    50   ~ 0
-a3
 Text Label 2090 5070 0    50   ~ 0
 a0
 Text Label 2090 4920 0    50   ~ 0
@@ -1336,8 +1244,6 @@ Text Label 6420 6180 2    50   ~ 0
 a1
 Text Label 6420 6280 2    50   ~ 0
 a0
-Text Label 5750 6130 2    50   ~ 0
-a3
 Text Label 5750 6330 2    50   ~ 0
 a7
 Text Label 5750 6230 2    50   ~ 0
@@ -1466,17 +1372,6 @@ Wire Wire Line
 Wire Wire Line
 	6320 6380 6420 6380
 $Comp
-L Connector_Generic:Conn_01x05 J5
-U 1 1 5D263641
-P 5950 6230
-F 0 "J5" H 6030 6272 50  0000 L CNN
-F 1 "gpio1" H 6050 6200 50  0000 L CNN
-F 2 "Connector_PinHeader_2.54mm:PinHeader_1x05_P2.54mm_Vertical" H 5950 6230 50  0001 C CNN
-F 3 "~" H 5950 6230 50  0001 C CNN
-	1    5950 6230
-	1    0    0    -1  
-$EndComp
-$Comp
 L power:+3.3V #PWR0141
 U 1 1 5D26EAC0
 P 5650 5960
@@ -1503,11 +1398,11 @@ Wire Wire Line
 Wire Wire Line
 	5660 6430 5660 6530
 Wire Wire Line
-	5650 5960 5650 6040
+	5650 5960 5650 6120
 Wire Wire Line
-	5650 6040 5750 6040
+	5650 6120 5750 6120
 Wire Wire Line
-	5750 6040 5750 6030
+	5750 6120 5750 6130
 $Comp
 L Device:D D7
 U 1 1 5D2A4428
@@ -1521,4 +1416,185 @@ F 3 "~" H 1260 890 50  0001 C CNN
 $EndComp
 Text Notes 11325 1830 0    50   ~ 0
 3 amps through 0.1ohm shunt resistor is 0.3 watts\n1/2watt minimum resistor recommended\n
+Wire Wire Line
+	11030 4085 11140 4085
+Connection ~ 11140 4085
+Wire Wire Line
+	11140 4085 11140 2910
+Wire Wire Line
+	10730 4085 10600 4085
+Connection ~ 10600 4085
+Wire Wire Line
+	10600 4085 10600 4320
+Wire Wire Line
+	8105 4050 7990 4050
+Connection ~ 7990 4050
+Wire Wire Line
+	8405 4050 8530 4050
+Connection ~ 8530 4050
+Wire Wire Line
+	8530 4050 8530 2880
+$Comp
+L Device:D 1n4001
+U 1 1 5D254DFC
+P 8255 4050
+F 0 "1n4001" H 8115 3955 50  0000 L CNN
+F 1 "D" V 8300 4129 50  0000 L CNN
+F 2 "Diode_THT:D_A-405_P7.62mm_Horizontal" H 8255 4050 50  0001 C CNN
+F 3 "~" H 8255 4050 50  0001 C CNN
+	1    8255 4050
+	-1   0    0    1   
+$EndComp
+$Comp
+L Device:D D5
+U 1 1 5D1CEA1D
+P 9890 3290
+F 0 "D5" V 9844 3369 50  0000 L CNN
+F 1 "1n4001" H 9765 3170 50  0000 L CNN
+F 2 "Diode_THT:D_A-405_P7.62mm_Horizontal" H 9890 3290 50  0001 C CNN
+F 3 "~" H 9890 3290 50  0001 C CNN
+	1    9890 3290
+	0    1    1    0   
+$EndComp
+$Comp
+L Device:D D3
+U 1 1 5D30AF9E
+P 7280 3260
+F 0 "D3" V 7234 3339 50  0000 L CNN
+F 1 "1n4001" H 7160 3155 50  0000 L CNN
+F 2 "Diode_THT:D_A-405_P7.62mm_Horizontal" H 7280 3260 50  0001 C CNN
+F 3 "~" H 7280 3260 50  0001 C CNN
+	1    7280 3260
+	0    1    1    0   
+$EndComp
+$Comp
+L Device:D D9
+U 1 1 5D255799
+P 10880 4085
+F 0 "D9" V 10834 4164 50  0000 L CNN
+F 1 "1n4001" H 10745 4005 50  0000 L CNN
+F 2 "Diode_THT:D_A-405_P7.62mm_Horizontal" H 10880 4085 50  0001 C CNN
+F 3 "~" H 10880 4085 50  0001 C CNN
+	1    10880 4085
+	-1   0    0    1   
+$EndComp
+$Comp
+L Device:D D6
+U 1 1 5D1F4864
+P 9900 4630
+F 0 "D6" V 9854 4709 50  0000 L CNN
+F 1 "1n4001" H 9800 4520 50  0000 L CNN
+F 2 "Diode_THT:D_A-405_P7.62mm_Horizontal" H 9900 4630 50  0001 C CNN
+F 3 "~" H 9900 4630 50  0001 C CNN
+	1    9900 4630
+	0    1    1    0   
+$EndComp
+$Comp
+L Device:D D4
+U 1 1 5D30AFFC
+P 7290 4600
+F 0 "D4" V 7244 4679 50  0000 L CNN
+F 1 "1n4001" H 7175 4490 50  0000 L CNN
+F 2 "Diode_THT:D_A-405_P7.62mm_Horizontal" H 7290 4600 50  0001 C CNN
+F 3 "~" H 7290 4600 50  0001 C CNN
+	1    7290 4600
+	0    1    1    0   
+$EndComp
+$Comp
+L Switch:SW_Push SW2
+U 1 1 5D2C21C6
+P 1510 2210
+F 0 "SW2" H 1510 2495 50  0000 C CNN
+F 1 "open" H 1510 2404 50  0000 C CNN
+F 2 "Button_Switch_THT:SW_PUSH_6mm_H8.5mm" H 1510 2410 50  0001 C CNN
+F 3 "~" H 1510 2410 50  0001 C CNN
+	1    1510 2210
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	1710 2210 1990 2210
+Wire Wire Line
+	1990 2210 1990 2570
+Connection ~ 1990 2570
+Text Label 1310 2210 2    50   ~ 0
+sw2
+Text Label 2090 4620 0    50   ~ 0
+sw2
+$Comp
+L Connector_Generic:Conn_01x04 J5
+U 1 1 5D2CF3C3
+P 5950 6230
+F 0 "J5" H 6030 6222 50  0000 L CNN
+F 1 "gpio1" H 6030 6131 50  0000 L CNN
+F 2 "Connector_PinHeader_2.54mm:PinHeader_1x04_P2.54mm_Vertical" H 5950 6230 50  0001 C CNN
+F 3 "~" H 5950 6230 50  0001 C CNN
+	1    5950 6230
+	1    0    0    -1  
+$EndComp
+$Comp
+L Mechanical:MountingHole_Pad H2
+U 1 1 5D2F3DBA
+P 710 6630
+F 0 "H2" V 947 6633 50  0000 C CNN
+F 1 "MountingHole_Pad" V 856 6633 50  0000 C CNN
+F 2 "MountingHole:MountingHole_3.2mm_M3_Pad_Via" H 710 6630 50  0001 C CNN
+F 3 "~" H 710 6630 50  0001 C CNN
+	1    710  6630
+	0    -1   -1   0   
+$EndComp
+$Comp
+L Mechanical:MountingHole_Pad H1
+U 1 1 5D2F4284
+P 710 6430
+F 0 "H1" V 947 6433 50  0000 C CNN
+F 1 "MountingHole_Pad" V 856 6433 50  0000 C CNN
+F 2 "MountingHole:MountingHole_3.2mm_M3_Pad_Via" H 710 6430 50  0001 C CNN
+F 3 "~" H 710 6430 50  0001 C CNN
+	1    710  6430
+	0    -1   -1   0   
+$EndComp
+$Comp
+L Mechanical:MountingHole_Pad H3
+U 1 1 5D3143F9
+P 710 6820
+F 0 "H3" V 947 6823 50  0000 C CNN
+F 1 "MountingHole_Pad" V 856 6823 50  0000 C CNN
+F 2 "MountingHole:MountingHole_3.2mm_M3_Pad_Via" H 710 6820 50  0001 C CNN
+F 3 "~" H 710 6820 50  0001 C CNN
+	1    710  6820
+	0    -1   -1   0   
+$EndComp
+$Comp
+L Mechanical:MountingHole_Pad H4
+U 1 1 5D314874
+P 710 7000
+F 0 "H4" V 947 7003 50  0000 C CNN
+F 1 "MountingHole_Pad" V 856 7003 50  0000 C CNN
+F 2 "MountingHole:MountingHole_3.2mm_M3_Pad_Via" H 710 7000 50  0001 C CNN
+F 3 "~" H 710 7000 50  0001 C CNN
+	1    710  7000
+	0    -1   -1   0   
+$EndComp
+Wire Wire Line
+	810  6430 810  6630
+Connection ~ 810  6630
+Wire Wire Line
+	810  6630 810  6820
+Connection ~ 810  6820
+Wire Wire Line
+	810  6820 810  7000
+Connection ~ 810  7000
+Wire Wire Line
+	810  7000 810  7100
+$Comp
+L power:GND #PWR0143
+U 1 1 5D31DB8C
+P 810 7100
+F 0 "#PWR0143" H 810 6850 50  0001 C CNN
+F 1 "GND" H 815 6927 50  0000 C CNN
+F 2 "" H 810 7100 50  0001 C CNN
+F 3 "" H 810 7100 50  0001 C CNN
+	1    810  7100
+	1    0    0    -1  
+$EndComp
 $EndSCHEMATC

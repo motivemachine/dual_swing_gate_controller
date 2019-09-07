@@ -43,8 +43,8 @@ unsigned long last_battery_check = 0;
 unsigned long checkin_delay = 7200000;
 unsigned int alarm_delay = 5000;
 
-Adafruit_INA219 inaOne;    //INA219 current sensor constructors
-Adafruit_INA219 inaTwo;
+Adafruit_INA219 inaOne(0x40);    //INA219 current sensor constructors
+Adafruit_INA219 inaTwo(0x41);
 
 float busvoltageOne = 0; //only need to know battery voltage from one sensor
 float shuntvoltageOne = 0;
@@ -54,15 +54,15 @@ float shuntvoltageTwo = 0;
 float loadvoltageTwo = 0;
 float currentMaOne = 0; //setting up current readings
 float currentMaTwo = 0;
-float maxcurrent = 1000.0; //maximum allowable current. Should be set to just slightly higher than what is required to open the gate. Any higher value is assumed to be cause by a jammed motor or gate pressing on an obstacle. Is in milliamps
+float maxcurrent = 1200.0; //maximum allowable current. Should be set to just slightly higher than what is required to open the gate. Any higher value is assumed to be cause by a jammed motor or gate pressing on an obstacle. Is in milliamps
 
 byte localAddress = 0x13; //19
 byte destAddress = 0x25; //37
 bool packetToParse = false;
 
-int runtime = 30000; //slightly longer than the motors should stay to to fully open/close. 16" acutators take about 28 seconds from limit to limit
-static const bool open[4] = {1,0,1,0}; //relay states for opening/retracting both actuators
-static const bool close[4] = {0,1,0,1};
+unsigned long runtime = 32000; //slightly longer than the motors should stay to to fully open/close. 16" acutators take about 28 seconds from limit to limit, plus some delays to stagger the startup current
+bool open[4] = {1,0,1,0}; //relay states for opening/retracting both actuators
+bool close[4] = {0,1,0,1};
 bool closeflag = false; // flag to determine if the gate is supposed to close or not
 bool openflag = false; // flag to determine if the gate is supposed to open or not
 bool gateisopen = false; // system needs to start with gate closed. answers the question 'is the gate open'
@@ -93,184 +93,226 @@ void faultmessage(String faultType) //called when experiencing fault. "fault1" =
 
 void openGate()
 {
+  unsigned long currentTime = millis(); //when the motors started running
   if (gateisopen == true) { // gate is already open
-    return;
+    Serial.println("already open");
   }
   Serial.println(F("Retracting actuators"));
-  unsigned long currentTime = millis();
   digitalWrite(relayOne, open[0]);  //opening gate, retracting actuators
   digitalWrite(relayTwo, open[1]);
+  delay(200); //slightly offset startup current by not starting motors at exact same time
   digitalWrite(relayThree, open[2]);
   digitalWrite(relayFour, open[3]);
-  delay(50); //short delay for motors to spin up?
+  delay(1000); //short delay for motors to spin up?
   getLoadVoltage();
   currentMaOne = inaOne.getCurrent_mA();
   currentMaTwo = inaTwo.getCurrent_mA();
-  if (loadvoltageOne < 10 || loadvoltageTwo < 10) //no voltage on actuator lines mean blown fuses
+  delay(10);
+  Serial.print("current ma:"); Serial.println(currentMaOne);
+  Serial.print("current ma:"); Serial.println(currentMaTwo);
+  if (loadvoltageOne < 6 || loadvoltageTwo < 6) //no voltage on actuator lines mean blown fuses
   {
     digitalWrite(relayOne, LOW);
     digitalWrite(relayTwo, LOW);
+    delay(100);
     digitalWrite(relayThree, LOW);
     digitalWrite(relayFour, LOW);
     Serial.println("no volt fault");
     faultmessage("fault1");
+    return;
   }
-  else if (currentMaOne < 200 || currentMaTwo < 200) //no current on actuator lines means motor disconnected
+  else if (currentMaOne < 100 || currentMaTwo < 100) //no current on actuator lines means motor disconnected
   {
     digitalWrite(relayOne, LOW);
     digitalWrite(relayTwo, LOW);
+    delay(100);
     digitalWrite(relayThree, LOW);
     digitalWrite(relayFour, LOW);
     Serial.println("no crnt fault");
     faultmessage("fault2");
+    return;
   }
-  else if (currentMaOne > maxcurrent || currentMaTwo > maxcurrent) //overcurrent as soon as things are moving means something is very jammed. Just stop all motors.
+  else if (currentMaOne > 1400 || currentMaTwo > 1400) //overcurrent as soon as things are moving means something is very jammed. Just stop all motors.
   {
     digitalWrite(relayOne, LOW);
     digitalWrite(relayTwo, LOW);
+    delay(100);
     digitalWrite(relayThree, LOW);
     digitalWrite(relayFour, LOW);
     Serial.println("overcurrent");
     faultmessage("fault3");
+    return;
   }
-  while (millis - currentTime < runtime)
+  while (millis() - currentTime < runtime)
   {
     currentMaOne = inaOne.getCurrent_mA();
     currentMaTwo = inaTwo.getCurrent_mA();
+    Serial.print("crnt 1: "); Serial.println(currentMaOne);
+    Serial.print("crnt 2: "); Serial.println(currentMaTwo);
     if (currentMaOne > maxcurrent ||currentMaTwo > maxcurrent) // if max current exceeded, stop motors, pause, move if opposite direction and stop.
-     {
+    {
+      unsigned long newCurrentTime = millis();
+      unsigned long reverseTime = (millis() - currentTime) + 2000; //calculate how long the motors have been running, and add 2 seconds.
+      while (millis() - newCurrentTime < reverseTime)
+      {
+        Serial.println("overcurrent");
+        digitalWrite(relayOne, LOW);
+        digitalWrite(relayTwo, LOW);
+        delay(100);
+        digitalWrite(relayThree, LOW);
+        digitalWrite(relayFour, LOW);
+        delay(2000);
+        digitalWrite(relayOne, LOW);
+        digitalWrite(relayTwo, HIGH);
+        delay(200); //slightly offset startup current by not starting motors at exact same time
+        digitalWrite(relayThree, LOW);
+        digitalWrite(relayFour, HIGH);
+        delay(250);
+        faultmessage("fault3");
+        Serial.println("overcurrent");
+        currentMaOne = inaOne.getCurrent_mA();
+        currentMaTwo = inaTwo.getCurrent_mA();
+        delay(50);
+        if (currentMaOne > maxcurrent || currentMaTwo > maxcurrent) // if max current exceeded while reversing direction, just stop everything and wait.
+          {
+            Serial.println("double overcurrent");
+            digitalWrite(relayOne, LOW);
+            digitalWrite(relayTwo, LOW);
+            delay(100);
+            digitalWrite(relayThree, LOW);
+            digitalWrite(relayFour, LOW);
+            delay(250);
+            return;
+          }
+      }
       digitalWrite(relayOne, LOW);
       digitalWrite(relayTwo, LOW);
+      delay(100);
       digitalWrite(relayThree, LOW);
       digitalWrite(relayFour, LOW);
-      delay(2000);
-      digitalWrite(relayOne, close[0]);
-      digitalWrite(relayTwo, close[1]);
-      digitalWrite(relayThree, close[2]);
-      digitalWrite(relayFour, close[3]);
-      delay(250);
-      faultmessage("fault3");
-      Serial.println("overcurrent");
-      currentMaOne = inaOne.getCurrent_mA();
-      currentMaTwo = inaTwo.getCurrent_mA();
-      if (currentMaOne > maxcurrent ||currentMaTwo > maxcurrent) // if max current exceeded while reversing direction, just stop everything and halt until reset.
-        {
-          digitalWrite(relayOne, LOW);
-          digitalWrite(relayTwo, LOW);
-          digitalWrite(relayThree, LOW);
-          digitalWrite(relayFour, LOW);
-          while (true)
-            {
-              gateisopen = false;
-              openflag = false;
-              closeflag = false;
-              digitalWrite(ledOne, HIGH);
-              digitalWrite(ledTwo, LOW);
-              delay(333);
-              digitalWrite(ledOne, LOW);
-              digitalWrite(ledTwo, HIGH);
-            }
-        }
-     }
+      return;
+    }
     delay(500); // pause before rereading current
   }
   digitalWrite(relayOne, LOW);
   digitalWrite(relayTwo, LOW);
+  delay(100);
   digitalWrite(relayThree, LOW);
   digitalWrite(relayFour, LOW);
-  openflag = false;
+  openflag = false; //setitng these equal to false will 'zero out' the flags if any change occured due to an interrupt for the radio setting one to true. Prevents opener from acting on multiple open/close commands recieved while the gate is in motion
+  closeflag = false;
   gateisopen = true;
 }
 
 void closeGate()
 {
   if (gateisopen == false) { // gate is already closed
-    return;
+    Serial.println("already closed");
   }
   Serial.println(F("Extending actuators"));
   unsigned long currentTime = millis();
   digitalWrite(relayOne, close[0]);  //closing gate, extending acutators
   digitalWrite(relayTwo, close[1]);
+  delay(200); //slightly offset startup current by not starting motors at exact same time
   digitalWrite(relayThree, close[2]);
   digitalWrite(relayFour, close[3]);
-  delay(50); //short delay for motors to spin up?
+  delay(1000); //short delay for motors to spin up?
   getLoadVoltage();
   currentMaOne = inaOne.getCurrent_mA();
   currentMaTwo = inaTwo.getCurrent_mA();
-  if (loadvoltageOne < 10 || loadvoltageTwo < 10) //no voltage on actuator lines mean blown fuses
+  delay(10);
+  Serial.print("current ma:"); Serial.println(currentMaOne);
+  Serial.print("current ma:"); Serial.println(currentMaTwo);
+  if (loadvoltageOne < 6 || loadvoltageTwo < 6) //no voltage on actuator lines mean blown fuses
   {
     digitalWrite(relayOne, LOW);
     digitalWrite(relayTwo, LOW);
+    delay(100);
     digitalWrite(relayThree, LOW);
     digitalWrite(relayFour, LOW);
     faultmessage("fault1");
     Serial.println("no volt fault");
+    return;
   }
-  else if (currentMaOne < 200 || currentMaTwo < 200) //no current on actuator lines means motor disconnected
+  else if (currentMaOne < 100 || currentMaTwo < 100) //no current on actuator lines means motor disconnected
   {
     digitalWrite(relayOne, LOW);
     digitalWrite(relayTwo, LOW);
+    delay(100);
     digitalWrite(relayThree, LOW);
     digitalWrite(relayFour, LOW);
     faultmessage("fault2");
     Serial.println("no crnt fault");
+    return;
   }
-  else if (currentMaOne > maxcurrent || currentMaTwo > maxcurrent) //overcurrent as soon as things are moving means something is very jammed. Just stop all motors.
+  else if (currentMaOne > 1400 || currentMaTwo > 1400) //overcurrent as soon as things are moving means something is very jammed. Just stop all motors.
   {
     digitalWrite(relayOne, LOW);
     digitalWrite(relayTwo, LOW);
+    delay(100);
     digitalWrite(relayThree, LOW);
     digitalWrite(relayFour, LOW);
     Serial.println("overcurrent");
     faultmessage("fault3");
+    return;
   }
-  while (millis - currentTime < runtime) // run motors for 30 seconds, checking every 400ms for a motor overcurrent condition
+  while (millis() - currentTime < runtime) // run motors for 30 seconds, checking every 400ms for a motor overcurrent condition
   {
     currentMaOne = inaOne.getCurrent_mA();
     currentMaTwo = inaTwo.getCurrent_mA();
-    if (currentMaOne > maxcurrent || currentMaTwo > maxcurrent) // if max current exceeded, stop motors, pause, move if opposite direction and stop.
+    Serial.print("crnt 1: "); Serial.println(currentMaOne);
+    Serial.print("crnt 2: "); Serial.println(currentMaTwo);
+    if (currentMaOne > maxcurrent || currentMaTwo > maxcurrent) // if max current exceeded, stop motors, pause, move in opposite direction and stop.
     {
+      unsigned long newCurrentTime = millis();
+      unsigned long reverseTime = (millis() - currentTime) + 2000; //calculate how long the motors have been running, and add 2 seconds.
+      while (millis() - newCurrentTime < reverseTime)
+      {
+        Serial.println("overcurrent");
+        digitalWrite(relayOne, LOW);
+        digitalWrite(relayTwo, LOW);
+        delay(100);
+        digitalWrite(relayThree, LOW);
+        digitalWrite(relayFour, LOW);
+        delay(2000);
+        digitalWrite(relayOne, open[0]);
+        digitalWrite(relayTwo, open[1]);
+        delay(200); //slightly offset startup current by not starting motors at exact same time
+        digitalWrite(relayThree, open[2]);
+        digitalWrite(relayFour, open[3]);
+        delay(250);
+        faultmessage("fault3");
+        Serial.println("overcurrent");
+        currentMaOne = inaOne.getCurrent_mA();
+        currentMaTwo = inaTwo.getCurrent_mA();
+        if (currentMaOne > maxcurrent || currentMaTwo > maxcurrent) // if max current exceeded while reversing direction, just stop everything and halt until reset.
+        {
+            Serial.println("double overcurrent");
+            digitalWrite(relayOne, LOW);
+            digitalWrite(relayTwo, LOW);
+            delay(100);
+            digitalWrite(relayThree, LOW);
+            digitalWrite(relayFour, LOW);
+            delay(250);
+            return;
+        }
+      }
       digitalWrite(relayOne, LOW);
       digitalWrite(relayTwo, LOW);
+      delay(100);
       digitalWrite(relayThree, LOW);
       digitalWrite(relayFour, LOW);
-      delay(2000);
-      digitalWrite(relayOne, open[0]);
-      digitalWrite(relayTwo, open[1]);
-      digitalWrite(relayThree, open[2]);
-      digitalWrite(relayFour, open[3]);
-      delay(250);
-      faultmessage("fault3");
-      Serial.println("overcurrent");
-      currentMaOne = inaOne.getCurrent_mA();
-      currentMaTwo = inaTwo.getCurrent_mA();
-      if (currentMaOne > maxcurrent || currentMaTwo > maxcurrent) // if max current exceeded while reversing direction, just stop everything and halt until reset.
-        {
-          digitalWrite(relayOne, LOW);
-          digitalWrite(relayTwo, LOW);
-          digitalWrite(relayThree, LOW);
-          digitalWrite(relayFour, LOW);
-          while (true)
-            {
-              gateisopen = true;
-              closeflag = false;
-              openflag = false;
-              digitalWrite(ledOne, HIGH);
-              digitalWrite(ledTwo, LOW);
-              delay(333);
-              digitalWrite(ledOne, LOW);
-              digitalWrite(ledTwo, HIGH);
-            }
-        }
-    delay(400); // pause before rereading current
-
+      return;
     }
+    delay(500); // pause before rereading current
   }
   digitalWrite(relayOne, LOW);
   digitalWrite(relayTwo, LOW);
+  delay(100);
   digitalWrite(relayThree, LOW);
   digitalWrite(relayFour, LOW);
-  closeflag = false;
+  closeflag = false; //setitng all these equal to false will 'zero out' the flags if any change occured due to an interrupt for the radio setting one to true. Prevents opener from acting on multiple open/close commands recieved while the gate is in motion
+  openflag = false;
   gateisopen = false;
 }
 
@@ -293,26 +335,34 @@ void receiving(int packetSize) // crap, is this an interrupt function? so millis
 
   char incomingArray[incomingLength];
   while (LoRa.available())
-    {
+  {
     incomingArray[i] = (char)LoRa.read();
     i++;
-    }
+  }
   if (strcmp(incomingArray,"OPEN") == 0)
-    {
-      Serial.println("open req");
-      openflag = true;
-      closeflag = false;
-    }
+  {
+    Serial.println("open req");
+    openflag = true;
+    closeflag = false;
+  }
   else if (strcmp(incomingArray,"CLOSE") == 0)
-    {
-      Serial.println("close req");
-      closeflag = true;
-      openflag = false;
-    }
+  {
+    Serial.println("close req");
+    closeflag = true;
+    openflag = false;
+  }
   else if (strcmp(incomingArray,"STAT"))
-    {
-        Serial.println("status request received"); //just a placeholder
-    }
+  {
+    Serial.println("status request received"); //just a placeholder
+    // if (openflag)
+    // {
+    //   // put lora status message ehre
+    // }
+    // else if (closeflag)
+    // {
+    //   // put lora status message here
+    // }
+  }
   //there will be some ack/nack and collision detection, eventually
   // else if ((char*)incomingArray == "ACK")
   //   {
@@ -400,16 +450,18 @@ void batteryCheck()
       LoRa.endPacket();
       msgid++;
     }
+  last_battery_check = millis();
 }
 
 
 
 void setup()
 {
-    Serial.begin(115200);
+    Serial.begin(57600);
+    Serial.println("starting up");
     Wire.begin();
-    mag.initialize(); //Initializes the mag sensor - this call will set wire frequency to 400khz if you do not change it in the library!!!!
-    mag.start();      //Puts the sensor in active mode
+    //mag.initialize(); //Initializes the mag sensor - this call will set wire frequency to 400khz if you do not change it in the library!!!!
+    //mag.start();      //Puts the sensor in active mode
     LoRa.setPins(csPin, resetPin, irqPin);
 
     uint32_t currentFrequency; //why is this in the adafruit example?
@@ -432,7 +484,15 @@ void setup()
     getLoadVoltage();
     Serial.print("volt one:"); Serial.println(loadvoltageOne);
     Serial.print("volt two:"); Serial.println(loadvoltageTwo);
-
+    digitalWrite(ledOne, HIGH);
+    digitalWrite(ledTwo, HIGH);
+    delay(1000);
+    digitalWrite(ledOne, LOW);
+    digitalWrite(ledTwo, LOW);
+    digitalWrite(relayOne, LOW);
+    digitalWrite(relayTwo, LOW);
+    digitalWrite(relayThree, LOW);
+    digitalWrite(relayFour, LOW);
 
     if (!LoRa.begin(430E6))
   {
@@ -440,9 +500,9 @@ void setup()
     while (1)
     {
       digitalWrite(ledOne, HIGH);
-      delay(80);
+      delay(150);
       digitalWrite(ledOne, LOW);
-      delay(80);
+      delay(150);
     }
   }
     Serial.println("Radio ready");
@@ -454,6 +514,7 @@ void setup()
 
 void loop()
 {
+  //digitalWrite(ledOne, HIGH);
   //check magnetometer readings every second, and check timers and battery voltage.
   //incoming radio messages are handled by an ISR that sets
 
@@ -470,7 +531,7 @@ void loop()
   //   oldy = yaverage;
   //   oldz = zaverage;
   // }
-  delay(200);
+  delay(20);
   if (millis() - last_checkin > checkin_delay)
   {
     checkin();
@@ -486,6 +547,7 @@ void loop()
   }
   if (millis() - last_battery_check > 600000) //check battery level every 10 minutes
   {
+    Serial.println("battery check");
     batteryCheck();
   }
   if (digitalRead(openbutton) == LOW) //copypasting the code from lora function 'receiving'. with the interrupts that might have to be changed to checking for a flag of some kind. fortesting, just indicate things are running OK
@@ -496,4 +558,6 @@ void loop()
   {
     closeGate();
   }
+  //digitalWrite(ledOne, LOW);
+  //delay(200); //delay for led blink
 }

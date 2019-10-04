@@ -5,7 +5,7 @@ Having built a custom driveway gate and hinge setup I found myself shocked at wh
 I'll be building a custom PCB for the whole thing, but I've tried to design this in such a way that any number of Arduino and related modules would work if hand-wired with jumpers, perfboard, breadboard, etc. Most parts are through-hole, and the ones that are surface mount are large enough hand soldering should be easy. Also makes for easy customization.
 
 ##### Current Status
-Schematic is complete, first board has been soldered and electrically tested. Code is mostly written, testing and debugging will begin shortly.
+Schematic and first soldered board is complete. Code testing has begun, and has been mostly reliable with a few adjustments needed in error handling functions and long-term robust-ness. 
 
 ![gate control board](boardwip.png)
 

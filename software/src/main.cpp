@@ -6,6 +6,8 @@
 #include <Adafruit_INA219.h>
 #include <SparkFun_MAG3110.h> //don't forget to make sure the Wire.begin() call in here is for 100khz, not 400khz as is the default from sparkfun
 
+//CHANGES MADE IN THIS VERSION: since installing- turned off heartbeat led, change startup curren limit from 1400ma to 1600, change max current while running from 1000 to 1300ma
+
 #define csPin 10
 #define resetPin 9
 #define irqPin 2
@@ -40,7 +42,7 @@ const String alarm_msg = "DRV";
 unsigned long alarm_active = 0;
 unsigned long last_checkin = 0;
 unsigned long last_battery_check = 0;
-unsigned long checkin_delay = 7200000;
+unsigned long checkin_delay = 14000000;
 unsigned int alarm_delay = 5000;
 
 Adafruit_INA219 inaOne(0x40);    //INA219 current sensor constructors
@@ -54,7 +56,7 @@ float shuntvoltageTwo = 0;
 float loadvoltageTwo = 0;
 float currentMaOne = 0; //setting up current readings
 float currentMaTwo = 0;
-float maxcurrent = 1000.0; //maximum allowable current. Should be set to just slightly higher than what is required to open the gate. Any higher value is assumed to be cause by a jammed motor or gate pressing on an obstacle. Is in milliamps
+float maxcurrent = 1300.0; //maximum allowable current. Should be set to just slightly higher than what is required to open the gate. Any higher value is assumed to be cause by a jammed motor or gate pressing on an obstacle. Is in milliamps
 
 byte localAddress = 0x13; //19
 byte destAddress = 0x25; //37
@@ -112,17 +114,16 @@ void checkin()
 void openGate()
 {
   unsigned long currentTime = millis(); //when the motors started running
-  unsigned long retractTime; //how long the motors must retract for if reversign due to overcurrent
   if (gateisopen == true)
   { // gate is already open
-    Serial.println("already open");
+    //Serial.println("already open");
     openflag = false;
     closeflag = false;
     gateisopen = false;
     return;
   }
-
-  Serial.println(F("Retracting actuators"));
+  bool errorFlag = false;
+  //Serial.println(F("Retracting actuators"));
   digitalWrite(relayOne, open[0]);  //opening gate, retracting actuators
   digitalWrite(relayTwo, open[1]);
   delay(200); //slightly offset startup current by not starting motors at exact same time
@@ -133,8 +134,8 @@ void openGate()
   currentMaOne = inaOne.getCurrent_mA();
   currentMaTwo = inaTwo.getCurrent_mA();
   delay(10);
-  Serial.print("current ma:"); Serial.println(currentMaOne);
-  Serial.print("current ma:"); Serial.println(currentMaTwo);
+  //Serial.print("current ma:"); Serial.println(currentMaOne);
+  //Serial.print("current ma:"); Serial.println(currentMaTwo);
   if (loadvoltageOne < 6 || loadvoltageTwo < 6) //no voltage on actuator lines mean blown fuses
   {
     digitalWrite(relayOne, LOW);
@@ -142,7 +143,7 @@ void openGate()
     delay(100);
     digitalWrite(relayThree, LOW);
     digitalWrite(relayFour, LOW);
-    Serial.println("no volt fault");
+    //Serial.println("no volt fault");
     faultmessage("fault1");
     openflag = false; //setitng these equal to false will 'zero out' the flags if any change occured due to an interrupt for the radio setting one to true. Prevents opener from acting on multiple open/close commands recieved while the gate is in motion
     closeflag = false;
@@ -156,21 +157,21 @@ void openGate()
     delay(100);
     digitalWrite(relayThree, LOW);
     digitalWrite(relayFour, LOW);
-    Serial.println("no crnt fault");
+    //Serial.println("no crnt fault");
     faultmessage("fault2");
     openflag = false; //setitng these equal to false will 'zero out' the flags if any change occured due to an interrupt for the radio setting one to true. Prevents opener from acting on multiple open/close commands recieved while the gate is in motion
     closeflag = false;
     gateisopen = true;
     return;
   }
-  else if (currentMaOne > 1400 || currentMaTwo > 1400) //overcurrent as soon as things are moving means something is very jammed. Just stop all motors.
+  else if (currentMaOne > 1600 || currentMaTwo > 1600) //overcurrent as soon as things are moving means something is very jammed. Just stop all motors.
   {
     digitalWrite(relayOne, LOW);
     digitalWrite(relayTwo, LOW);
     delay(100);
     digitalWrite(relayThree, LOW);
     digitalWrite(relayFour, LOW);
-    Serial.println("overcurrent");
+    //Serial.println("overcurrent");
     faultmessage("fault3");
     openflag = false; //setitng these equal to false will 'zero out' the flags if any change occured due to an interrupt for the radio setting one to true. Prevents opener from acting on multiple open/close commands recieved while the gate is in motion
     closeflag = false;
@@ -181,14 +182,12 @@ void openGate()
   {
     currentMaOne = inaOne.getCurrent_mA();
     currentMaTwo = inaTwo.getCurrent_mA();
-    Serial.print("crnt 1: "); Serial.println(currentMaOne);
-    Serial.print("crnt 2: "); Serial.println(currentMaTwo);
+    //Serial.print("crnt 1: "); Serial.println(currentMaOne);
+    //Serial.print("crnt 2: "); Serial.println(currentMaTwo);
     if (currentMaOne > maxcurrent ||currentMaTwo > maxcurrent) // if max current exceeded, stop motors, pause, move if opposite direction and stop.
     {
-      //while (currentMaOne > 10 || currentMaTwo > 10) //run until there's no more current flowing, where we assume the motors have stopped by reaching their limit switches.
-      //{
-
-        Serial.println("overcurrent");
+        currentTime += 2500; // add 2.5 seconds to compensate for delays on stopping and reversing. Will run until actuators are fullly open
+        //Serial.println("overcurrent");
         digitalWrite(relayOne, LOW);
         digitalWrite(relayTwo, LOW);
         delay(200);
@@ -202,17 +201,7 @@ void openGate()
         digitalWrite(relayFour, close[3]);
         delay(100);
         faultmessage("fault3");
-        //currentMaOne = inaOne.getCurrent_mA();
-        //currentMaTwo = inaTwo.getCurrent_mA();
-        openflag = false;
-        closeflag = false;
-        gateisopen = false; //gate will reverse and re-close after overcurrent fault
-        digitalWrite(relayOne, LOW);
-        digitalWrite(relayTwo, LOW);
-        delay(100);
-        digitalWrite(relayThree, LOW);
-        digitalWrite(relayFour, LOW);
-        return;
+        errorFlag = true;
 
         // if (currentMaOne > maxcurrent || currentMaTwo > maxcurrent) // if max current exceeded while reversing direction, just stop everything and wait.
         // {
@@ -241,20 +230,24 @@ void openGate()
   openflag = false; //setitng these equal to false will 'zero out' the flags if any change occured due to an interrupt for the radio setting one to true. Prevents opener from acting on multiple open/close commands recieved while the gate is in motion
   closeflag = false;
   gateisopen = true;
+  if (errorFlag == true) gateisopen = false; //if gate reversed, it's closed now, not opener
+  errorFlag = false;
   LoRa.receive();
 }
 
 void closeGate()
 {
-  unsigned long currentTime = millis();
-  if (gateisopen == false) { // gate is already closed
-    Serial.println("already closed");
+  unsigned long currentTime = millis(); //when the motors started running
+  if (gateisopen == false)
+  { // gate is already closed
+    //Serial.println("already closed");
     closeflag = false;
     openflag = false;
     gateisopen = true; // set to true so that if control was started with gate in wrong position, is will reset and try to open on second try.
     return;
   }
-  Serial.println(F("Extending actuators"));
+  bool errorFlag = false;
+  //Serial.println(F("Extending actuators"));
   digitalWrite(relayOne, close[0]);  //closing gate, extending acutators
   digitalWrite(relayTwo, close[1]);
   delay(200); //slightly offset startup current by not starting motors at exact same time
@@ -265,8 +258,8 @@ void closeGate()
   currentMaOne = inaOne.getCurrent_mA();
   currentMaTwo = inaTwo.getCurrent_mA();
   delay(10);
-  Serial.print("current ma:"); Serial.println(currentMaOne);
-  Serial.print("current ma:"); Serial.println(currentMaTwo);
+  //Serial.print("current ma:"); Serial.println(currentMaOne);
+  //Serial.print("current ma:"); Serial.println(currentMaTwo);
   if (loadvoltageOne < 6 || loadvoltageTwo < 6) //no voltage on actuator lines mean blown fuses
   {
     digitalWrite(relayOne, LOW);
@@ -275,7 +268,7 @@ void closeGate()
     digitalWrite(relayThree, LOW);
     digitalWrite(relayFour, LOW);
     faultmessage("fault1");
-    Serial.println("no volt fault");
+    //Serial.println("no volt fault");
     closeflag = false; //setitng all these equal to false will 'zero out' the flags if any change occured due to an interrupt for the radio setting one to true. Prevents opener from acting on multiple open/close commands recieved while the gate is in motion
     openflag = false;
     gateisopen = false;
@@ -289,7 +282,7 @@ void closeGate()
     digitalWrite(relayThree, LOW);
     digitalWrite(relayFour, LOW);
     faultmessage("fault2");
-    Serial.println("no crnt fault");
+    //Serial.println("no crnt fault");
     closeflag = false; //setitng all these equal to false will 'zero out' the flags if any change occured due to an interrupt for the radio setting one to true. Prevents opener from acting on multiple open/close commands recieved while the gate is in motion
     openflag = false;
     //gateisopen = false;
@@ -297,7 +290,7 @@ void closeGate()
   }
   else if (currentMaOne > 1400 || currentMaTwo > 1400) //overcurrent as soon as things are moving means something is very jammed. Just stop all motors.
   {
-    Serial.println("overcurrent");
+    //Serial.println("overcurrent");
     digitalWrite(relayOne, LOW);
     digitalWrite(relayTwo, LOW);
     delay(100);
@@ -313,13 +306,12 @@ void closeGate()
   {
     currentMaOne = inaOne.getCurrent_mA();
     currentMaTwo = inaTwo.getCurrent_mA();
-    Serial.print("crnt 1: "); Serial.println(currentMaOne);
-    Serial.print("crnt 2: "); Serial.println(currentMaTwo);
+    //Serial.print("crnt 1: "); Serial.println(currentMaOne);
+    //Serial.print("crnt 2: "); Serial.println(currentMaTwo);
     if (currentMaOne > maxcurrent || currentMaTwo > maxcurrent) // if max current exceeded, stop motors, pause, move in opposite direction and stop.
     {
-      // while (currentMaOne > 10 || currentMaTwo > 10)
-      // {
-        Serial.println("overcurrent");
+        currentTime += 2500; // add 2.5 seconds to currentTime to compenstate for stop/reverse delays
+        //Serial.println("overcurrent");
         digitalWrite(relayOne, LOW);
         digitalWrite(relayTwo, LOW);
         delay(200);
@@ -333,15 +325,7 @@ void closeGate()
         digitalWrite(relayFour, open[3]);
         delay(100);
         faultmessage("fault3");
-        openflag = false;
-        closeflag = false;
-        gateisopen = true; //gate will reverse and re-open after overcurrent fault
-        digitalWrite(relayOne, LOW);
-        digitalWrite(relayTwo, LOW);
-        delay(100);
-        digitalWrite(relayThree, LOW);
-        digitalWrite(relayFour, LOW);
-        return;
+        errorFlag = true;
       //   currentMaOne = inaOne.getCurrent_mA();
       //   currentMaTwo = inaTwo.getCurrent_mA();
         // if (currentMaOne > maxcurrent || currentMaTwo > maxcurrent) // if max current exceeded while reversing direction, just stop everything and halt until reset.
@@ -371,6 +355,8 @@ void closeGate()
   closeflag = false; //setitng all these equal to false will 'zero out' the flags if any change occured due to an interrupt for the radio setting one to true. Prevents opener from acting on multiple open/close commands recieved while the gate is in motion
   openflag = false;
   gateisopen = false;
+  if (errorFlag == true) gateisopen = true; //if gate reversed, it's open now, not closed
+  errorFlag = false;
   LoRa.receive();
 }
 
@@ -384,10 +370,9 @@ void receiving(int packetSize) // crap, is this an interrupt function?
   if (packetSize == 0) return;
   int i = 0;
   int recipient = LoRa.read();
-  Serial.print("recip: "); Serial.println(recipient, HEX);
   if (recipient != localAddress) return; //message isn't for us, quit parsing
   byte sender = LoRa.read();
-  Serial.print("sndr: "); Serial.println(sender);
+  //Serial.print("sndr: "); Serial.println(sender);
   byte incomingMsgId = LoRa.read();
   byte incomingLength = LoRa.read();
 
@@ -404,25 +389,38 @@ void receiving(int packetSize) // crap, is this an interrupt function?
   // Serial.println(strncmp(incomingArray, "STAT",4));
   if (strncmp(incomingArray,"OPEN",4) == 0) // strcmp never works right. maybe there's a trailing newline issue? strncmp and defining the expected array length seems to work fine
   {
-    Serial.println("open req");
+    //Serial.println("open req");
     openflag = true;
     closeflag = false;
   }
   else if (strncmp(incomingArray,"CLOSE",5) == 0)
   {
-    Serial.println("close req");
+    //Serial.println("close req");
     closeflag = true;
     openflag = false;
   }
+  else if (strncmp(incomingArray,"TOG",3) == 0)
+  {
+    if (gateisopen == true)
+    {
+      closeflag = true;
+      openflag = false;
+    }
+    else
+    {
+      closeflag = false;
+      openflag = true;
+    }
+  }
   else if (strncmp(incomingArray,"STAT",4) == 0)
   {
-    Serial.println("status req");
+    //Serial.println("status req");
     checkin();
   }
-  else
-  {
-    Serial.println("rx unrec");
-  }
+  //else
+  //{
+    //Serial.println("rx unrec");
+  //}
     // if (openflag)
     // {
     //   // put lora status message ehre
@@ -561,7 +559,7 @@ void setup()
       delay(150);
     }
   }
-    Serial.println("Radio ready");
+    //Serial.println("Radio ready");
     LoRa.onReceive(receiving);
     LoRa.receive();
     //getgauss(); //get and zero a magnetometer reading
@@ -569,7 +567,7 @@ void setup()
 
 void loop()
 {
-  digitalWrite(ledOne, HIGH); // heartbeat blink for testing. will remove later
+  //digitalWrite(ledOne, HIGH); // heartbeat blink for testing. will remove later
   delay(250);
   //check magnetometer readings every second, and check timers and battery voltage.
   //incoming radio messages are handled by an ISR that sets
@@ -589,7 +587,7 @@ void loop()
   // }
   if (millis() - last_checkin > checkin_delay) //
   {
-    Serial.println("check in");
+    //Serial.println("check in");
     checkin();
     last_checkin = millis();
   }
@@ -603,7 +601,7 @@ void loop()
   }
   if (millis() - last_battery_check > 600000) //check battery level every 10 minutes
   {
-    Serial.println("battery check");
+    //Serial.println("battery check");
     batteryCheck();
   }
   if (digitalRead(openbutton) == LOW)
@@ -618,6 +616,6 @@ void loop()
     gateisopen = true;
     closeGate();
   }
-  digitalWrite(ledOne, LOW);
+  //digitalWrite(ledOne, LOW);
   delay(250); //delay for led blink
 }
